@@ -1,3 +1,5 @@
+from experimenter.exceptions import MainNotDefinedException
+from experimenter.config_node import ConfigNode
 from pathlib import Path
 from .git_utils import GitRepo
 
@@ -5,8 +7,12 @@ import typing as T
 import click
 import glob
 import os
+import shutil
+import logging
 
 EXPERIMENT_DIR_NAME = "experimenter-results"
+
+logger = logging.getLogger(__name__)
 
 class Experiment:
     def __init__(self, name: str, allow_dirty: bool = False) -> None:
@@ -33,21 +39,43 @@ class Experiment:
         @click.command(
             name = "run"
         )
-        @click.argument("cfg_node_path", type=click.File("r"))
+        @click.argument("cfg_node_path", type=click.Path(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True
+        ))
         def run_exp(cfg_node_path):
             if self._main is None:
-                raise ValueError
+                raise MainNotDefinedException
             repo = GitRepo()
 
             dirty = repo.is_dirty()
             commit_hash = repo.get_current_commit()
             repo_base_dir = repo.get_base_dir()
 
-            if not self.allow_dirty and dirty:
-                return
+            if dirty:
+                logger.warn("Repo state is dirty")
+                if not self.allow_dirty:
+                    return
 
-            cfg_node = None
+            experiment_config = ConfigNode()
+
+            cfg_node = ConfigNode.yaml_load(cfg_node_path)
+            experiment_config.cfg = cfg_node
+
+            experiment_config.repo = ConfigNode()
+            experiment_config.repo.base_dir = repo_base_dir
+            experiment_config.repo.dirty = dirty
+            experiment_config.repo.commit_hash = commit_hash
+
             experiment_dir = self._get_experiment_dir_name(repo_base_dir)
+
+            experiment_config.yaml_dump(os.path.join(experiment_dir, "cfg-w-meta.yaml"))
+            shutil.copy(cfg_node_path, os.path.join(experiment_dir, "cfg.yaml"))
+
+            cfg_node.freeze()
             self._main(cfg_node, experiment_dir)
 
         run_exp()
