@@ -75,7 +75,6 @@ class Experiment:
             experiment_config.yaml_dump(os.path.join(experiment_dir, "cfg-w-meta.yaml"))
             shutil.copy(cfg_node_path, os.path.join(experiment_dir, "cfg.yaml"))
 
-            cfg_node.freeze()
             self._main(cfg_node, experiment_dir)
 
         run_exp()
