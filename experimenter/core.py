@@ -15,23 +15,22 @@ EXPERIMENT_DIR_NAME = "experimenter-results"
 logger = logging.getLogger(__name__)
 
 class Experiment:
-    def __init__(self, name: str, allow_dirty: bool = False) -> None:
-        self.name = name
+    def __init__(self, allow_dirty: bool = False) -> None:
         self.allow_dirty = allow_dirty
         self._main: T.Optional[T.Callable[[T.Any, str], None]] = None
 
     def main(self, func: T.Optional[T.Callable[[T.Any, str], None]]):
         self._main = func
 
-    def _get_experiment_dir_name(self, base_dir):
+    def _get_experiment_dir_name(self, base_dir, name):
         experiment_base_path = os.path.join(base_dir, EXPERIMENT_DIR_NAME)
         max_run_id = 0
-        for path in glob.glob(os.path.join(experiment_base_path, f"{glob.escape(self.name)}_[0-9]*")):
+        for path in glob.glob(os.path.join(experiment_base_path, f"{glob.escape(name)}_[0-9]*")):
             file_name = path.split(os.sep)[-1]
             ext = file_name.split("_")[-1]
-            if self.name == "_".join(file_name.split("_")[:-1]) and ext.isdigit() and int(ext) > max_run_id:
+            if name == "_".join(file_name.split("_")[:-1]) and ext.isdigit() and int(ext) > max_run_id:
                 max_run_id = int(ext)
-        experiment_path = os.path.join(experiment_base_path, f"{self.name}_{max_run_id + 1}")
+        experiment_path = os.path.join(experiment_base_path, f"{name}_{max_run_id + 1}")
         Path(experiment_path).mkdir(parents=True, exist_ok=True)
         return experiment_path
 
@@ -46,7 +45,8 @@ class Experiment:
             readable=True,
             resolve_path=True
         ))
-        def run_exp(cfg_node_path):
+        @click.argument("name")
+        def run_exp(cfg_node_path, name):
             if self._main is None:
                 raise MainNotDefinedException
             repo = GitRepo()
@@ -70,7 +70,7 @@ class Experiment:
             experiment_config.repo.dirty = dirty
             experiment_config.repo.commit_hash = commit_hash
 
-            experiment_dir = self._get_experiment_dir_name(repo_base_dir)
+            experiment_dir = self._get_experiment_dir_name(repo_base_dir, name)
 
             experiment_config.yaml_dump(os.path.join(experiment_dir, "cfg-w-meta.yaml"))
             shutil.copy(cfg_node_path, os.path.join(experiment_dir, "cfg.yaml"))
