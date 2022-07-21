@@ -1,8 +1,9 @@
 """Module containing code used for managing configs"""
-import copy
+from .exceptions import FrozenConfigException
 from logging import getLogger
 
-from .exceptions import FrozenConfigException
+import yaml
+import copy
 
 logger = getLogger(__name__)
 
@@ -105,32 +106,8 @@ class ConfigNode(dict):
         """Create a copy of the current ConfigNode"""
         return copy.deepcopy(self)
 
-    def json_dump(self, path):
-        """Dump the ConfigNode to a json file"""
-
-        # import here to skip unnecessary imports at the top of the file
-        import json
-
-        with open(path, "w") as f:
-            json.dump(self, f)
-
-    @staticmethod
-    def json_load(path) -> "ConfigNode":
-        """Load ConfigNode from a json file"""
-
-        # import here to skip unnecessary imports at the top of the file
-        import json
-
-        with open(path, "r") as f:
-            d = json.load(f)
-
-        return ConfigNode(d)
-
     def yaml_dump(self, path):
         """Dump the ConfigNode to a yaml file"""
-
-        # import here to skip unnecessary imports at the top of the file
-        import yaml
 
         with open(path, "w") as f:
             yaml.dump(self.to_dict(), f, Dumper=yaml.Dumper)
@@ -139,32 +116,8 @@ class ConfigNode(dict):
     def yaml_load(path) -> "ConfigNode":
         """Load ConfigNode from a yaml file"""
 
-        # import here to skip unnecessary imports at the top of the file
-        import yaml
-
         with open(path, "r") as f:
             d = yaml.load(f, Loader=yaml.Loader)
-
-        return ConfigNode(d)
-
-    def toml_dump(self, path):
-        """Dump the ConfigNode to a toml file"""
-
-        # import here to skip unnecessary imports at the top of the file
-        import toml
-
-        with open(path, "w") as f:
-            toml.dump(self, f)
-
-    @staticmethod
-    def toml_load(path) -> "ConfigNode":
-        """Load ConfigNode from a toml file"""
-
-        # import here to skip unnecessary imports at the top of the file
-        import toml
-
-        with open(path, "r") as f:
-            d = toml.load(f)
 
         return ConfigNode(d)
 
