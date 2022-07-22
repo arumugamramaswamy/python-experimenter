@@ -19,6 +19,16 @@ class Experiment:
         self.allow_dirty = allow_dirty
         self._main: T.Optional[T.Callable[[T.Any, str], None]] = None
 
+        @click.group("ex")
+        def command_group():
+            pass
+
+        self.group = command_group
+
+    @staticmethod
+    def load_cfg(cfg_node_path) -> ConfigNode:
+        return ConfigNode.yaml_load(cfg_node_path)
+        
     def main(self, func: T.Optional[T.Callable[[T.Any, str], None]]):
         self._main = func
 
@@ -35,8 +45,8 @@ class Experiment:
         return experiment_path
 
     def run(self):
-        @click.command(
-            name = "run"
+        @self.group.command(
+            name = "run", help="Run Experiment"
         )
         @click.argument("cfg_node_path", type=click.Path(
             exists=True,
@@ -62,7 +72,7 @@ class Experiment:
 
             experiment_config = ConfigNode()
 
-            cfg_node = ConfigNode.yaml_load(cfg_node_path)
+            cfg_node = self.load_cfg(cfg_node_path)
             experiment_config.cfg = cfg_node
 
             experiment_config.repo = ConfigNode()
@@ -77,4 +87,4 @@ class Experiment:
 
             self._main(cfg_node, experiment_dir)
 
-        run_exp()
+        self.group()
